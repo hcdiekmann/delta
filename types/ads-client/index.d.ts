@@ -1,0 +1,1 @@
+declare module 'ads-client'; // this is important for the ads-client to function properly 

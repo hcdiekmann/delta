@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link rel="stylesheet" type="text/css" href="css/slider.css">
+    <script type="text/javascript" src="Libraries/d3.min.js"></script>
+    <script type="text/javascript" src="Libraries/glm-js.min.js"></script>
+    <script type="text/javascript" src="Libraries/mPicker.js"></script>
+    <script type="text/javascript" src="Libraries/p5.min.js"></script>
+    <script type="text/javascript" src="Libraries/Chart.min.js"></script>
+    <script type="text/javascript" src="Libraries/math.min.js"></script>
+    <script type="text/javascript" src="Libraries/Umbelical.js"></script>
+    <script type="text/javascript" src="Libraries/GeoToolsJS.js"></script>
+    <script type="text/javascript" src="Libraries/papaparse.min.js"></script>
+    <title>RobotSim BPA</title>
+    <script type="text/javascript" src="js/superClasses/displayObject.js"></script>
+    <script type="text/javascript" src="js/superClasses/actuator.js"></script>
+    <script type="text/javascript" src="js/superClasses/robot.js"></script>
+    <script type="text/javascript" src="js/superClasses/conveyor.js"></script>
+    <script type="text/javascript" src="js/superClasses/case.js"></script>
+    <script type="text/javascript" src="js/objects/product.js"></script>
+    <script type="text/javascript" src="js/objects/deltaRobot.js"></script>
+    <script type="text/javascript" src="js/objects/origin.js"></script>
+    <script type="text/javascript" src="js/objects/steppermotor.js"></script>
+    <script type="text/javascript" src="js/objects/servo.js"></script>
+    <script type="text/javascript" src="js/graph.js"></script>
+    <script type="text/javascript" src="js/display.js"></script>
+    <script type="text/javascript" src="js/cameraMovement.js"></script>
+    <script type="text/javascript" src="js/main.js"></script>
+    <script type="text/javascript" src="js/csvToArray.js"></script>
+    <script type="text/javascript" src="js/communication/backendAPI.js" ></script>
+    <script type="text/javascript" src="js/communication/interface.js" ></script>
+    <script type="text/javascript" src="js/communication/performanceTest.js" ></script>
+
+</head>
+<body>
+    <div class="hud">
+        <div id="framerate">FPS: 0</div>
+        <div>
+            <label class="com-label" id="connectState" >
+                🔴offline
+            </label>
+            <label class="com-label" id="AdsState" style="display: none;">
+                State:
+            </label>
+            <label class="com-label" id="lblAmsID">
+                AmsNetID
+                <input id="netId" type="text" name="AmsNetId" required placeholder="eg. 192.168.168.18.1.1">
+            </label>
+            <label class="com-label" id="lblAdsPort">
+                AdsPort
+                <input id="port" type="number" name="Adsport" required placeholder="eg. 851">
+            </label>
+            <button id="connectBtn" onclick="ConnectPLC()" style="float: right;" >Connect</button>
+        </div>
+        <br><br>  
+        <div class="container" style="justify-content: center;">
+        <button class="button-hud" onclick="DemoPLCMoveRobot()">use PLC values</button>
+        <button class="button-hud" onclick="DemoRepeatMoveRobot()">toggle movement loop</button>
+        </div><br>
+        <button class="button-hud" onclick="DemoSingularMoveRobot()">update motor angles</button>
+        <div class="slidecontainer">
+            <div class="slider-txt">motor 1 angle</div>
+            <input type="range" min="0" max="100" value="50" class="slider" id="motor1">
+            <div class="slider-txt">motor 2 angle</div>
+            <input type="range" min="0" max="100" value="50" class="slider" id="motor2">
+            <div class="slider-txt">motor 3 angle</div>
+            <input type="range" min="0" max="100" value="50" class="slider" id="motor3">
+        </div>
+        <br>
+        <button class="button-hud" onclick="addProduct()">add product</button>
+        <div>conveyor speed</div>
+        <input type="range" min="0" max="100" value="50" class="slider" id="conveyorSpeed" onchange="SetConveyorSpeed((this.value / 10) * 3)">
+        <div>product deploy interval</div>
+        <input type="range" min="1" max="100" value="50" class="slider" id="productSpeed" onchange="SetProductSpeed(this.value * 3)">
+        <div>product's conveyor position</div>
+        <input type="range" min="-100" max="100" value="0" class="slider" id="productSpeed" onchange="SetConveyorPos(this.value / 100)">
+        <div class="container">
+            <input type="file" id="csv-file" accept=".csv">
+            <button  class="button-hud" onclick="DemoCSVMoveRobot()" id="btn-upload-csv">Read CSV</button>
+            <button  class="button-hud" onclick="toggleReadCSVState()" id="btn-changeCSVState">Singular</button>
+        </div>
+        <br>
+        <button  class="button-hud" onclick="changeShowReach()" id="btn-changeSHOWReachState">No Kinematic Reach</button>
+    </div>
+</body>
+</html>
