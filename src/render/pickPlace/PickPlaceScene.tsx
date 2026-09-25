@@ -187,7 +187,7 @@ function Conveyor({
         <boxGeometry args={[length, width, 0.09]} />
       </mesh>
       {[-length / 2, length / 2].map((x) => (
-        <mesh key={x} position={[x, 0, h - 0.04]} rotation-x={Math.PI / 2} material={frameMat}>
+        <mesh key={x} position={[x, 0, h - 0.04]} material={frameMat}>
           <cylinderGeometry args={[0.04, 0.04, width + 0.02, 16]} />
         </mesh>
       ))}

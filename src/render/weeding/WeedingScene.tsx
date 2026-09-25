@@ -336,10 +336,10 @@ function Vehicle({ scenario }: { scenario: WeedingScenario }) {
       <group ref={wheels}>
         {legs.map(([x, y], i) => (
           <group key={i} position={[x, y, wheelR]}>
-            <mesh material={tyreMat} rotation-x={Math.PI / 2} castShadow>
+            <mesh material={tyreMat} castShadow>
               <cylinderGeometry args={[wheelR, wheelR, 0.11, 16]} />
             </mesh>
-            <mesh material={frameMat} rotation-x={Math.PI / 2}>
+            <mesh material={frameMat}>
               <cylinderGeometry args={[wheelR * 0.45, wheelR * 0.45, 0.13, 8]} />
             </mesh>
           </group>
