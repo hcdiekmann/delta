@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { distance, vec3 } from '../math/vec3';
-import {
-  elbow,
-  forwardKinematics,
-  inverseKinematics,
-  jointVelocities,
-  type Joints,
-} from './kinematics';
+import { elbow, forwardKinematics, inverseKinematics, jointVelocities, type Joints } from './kinematics';
 import { PRESETS, type DeltaParams } from './params';
 
 const robots: [string, DeltaParams][] = Object.entries(PRESETS);

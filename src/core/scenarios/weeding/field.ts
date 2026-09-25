@@ -37,7 +37,7 @@ export const FIELD_PRESETS: Record<FieldPresetId, FieldPreset> = {
     rows: [-0.19, 0.19],
     cropSpacing: 0.25,
     laneHalfWidth: 0.375,
-    baseHeight: 0.62,
+    baseHeight: 0.74,
   },
   flatField: {
     id: 'flatField',
@@ -51,7 +51,7 @@ export const FIELD_PRESETS: Record<FieldPresetId, FieldPreset> = {
     rows: [-1.05, -0.75, -0.45, -0.15, 0.15, 0.45, 0.75, 1.05],
     cropSpacing: 0.2,
     laneHalfWidth: 0.6,
-    baseHeight: 0.95,
+    baseHeight: 1.07,
   },
 };
 

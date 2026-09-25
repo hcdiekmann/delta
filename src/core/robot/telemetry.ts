@@ -1,5 +1,16 @@
 /** Fixed-size ring buffers of recent robot signals for the live charts. */
-export const CHANNELS = ['theta0', 'theta1', 'theta2', 'omega0', 'omega1', 'omega2', 'tau0', 'tau1', 'tau2', 'speed'] as const;
+export const CHANNELS = [
+  'theta0',
+  'theta1',
+  'theta2',
+  'omega0',
+  'omega1',
+  'omega2',
+  'tau0',
+  'tau1',
+  'tau2',
+  'speed',
+] as const;
 export type Channel = (typeof CHANNELS)[number];
 
 export class Telemetry {

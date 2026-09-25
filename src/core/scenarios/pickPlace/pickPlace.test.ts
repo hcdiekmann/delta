@@ -22,9 +22,31 @@ describe('PickPlaceScenario', () => {
   ] as [string, Partial<PickPlaceConfig>][])('%s: picks almost everything at the default rate', (_n, cfg) => {
     const s = run(cfg);
     const { placed, missed } = s.counters();
-    console.log(_n, s.counters(), s.metrics().map((m) => `${m.label}=${m.value.toFixed(2)}`).join(' '));
+    console.log(
+      _n,
+      s.counters(),
+      s
+        .metrics()
+        .map((m) => `${m.label}=${m.value.toFixed(2)}`)
+        .join(' '),
+    );
     expect(placed).toBeGreaterThan(55);
     expect(missed / (placed + missed)).toBeLessThan(0.1);
+  });
+
+  it('keeps holding an item when its tray disappears and places it later', () => {
+    const s = new PickPlaceScenario({ ...DEFAULT_PICK_PLACE, placeMode: 'staticTrays' });
+    let guard = 0;
+    while (s.robot.phase !== 'transfer' && guard++ < 10000) s.step(1 / 240);
+    const item = s.robot.carrying!;
+    expect(item).toBeTruthy();
+    const trays = s.trays.splice(0, s.trays.length);
+    runFor((dt) => s.step(dt), 1);
+    expect(s.robot.carrying?.id).toBe(item.id);
+    expect(s.products.find((p) => p.id === item.id)?.state).toBe('carried');
+    s.trays.push(...trays);
+    runFor((dt) => s.step(dt), 2);
+    expect(s.products.find((p) => p.id === item.id)?.state).toBe('placed');
   });
 
   it('keeps the robot within its workspace the whole time', () => {

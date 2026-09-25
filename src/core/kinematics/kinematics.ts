@@ -1,14 +1,4 @@
-import {
-  add,
-  addScaled,
-  cross,
-  dot,
-  lengthSq,
-  scale,
-  sub,
-  vec3,
-  type Vec3,
-} from '../math/vec3';
+import { add, addScaled, cross, dot, lengthSq, scale, sub, vec3, type Vec3 } from '../math/vec3';
 import { LEG_ANGLES, LEGS, type DeltaParams, type LegIndex } from './params';
 
 export type Joints = readonly [number, number, number];
@@ -37,7 +27,11 @@ export function elbow(p: DeltaParams, i: LegIndex, theta: number): Vec3 {
 /** Derivative of the elbow position with respect to theta. */
 export function elbowDerivative(p: DeltaParams, i: LegIndex, theta: number): Vec3 {
   const r = legRadial(i);
-  return vec3(-r.x * p.upperArm * Math.sin(theta), -r.y * p.upperArm * Math.sin(theta), p.upperArm * Math.cos(theta));
+  return vec3(
+    -r.x * p.upperArm * Math.sin(theta),
+    -r.y * p.upperArm * Math.sin(theta),
+    p.upperArm * Math.cos(theta),
+  );
 }
 
 /** Lower arm attachment point on the effector for leg i. */
@@ -84,8 +78,10 @@ export function inverseKinematics(p: DeltaParams, pos: Vec3, margin = 0): IkResu
     const t = solveLeg(p, i, pos);
     if (Number.isNaN(t)) return { ok: false, reason: 'unreachable', leg: i };
     const w = wrap(t);
-    if (w < p.thetaMin + margin || w > p.thetaMax - margin) return { ok: false, reason: 'jointLimit', leg: i };
-    if (lowerArmTilt(p, i, w, pos) > p.ballJointMax - margin) return { ok: false, reason: 'ballJoint', leg: i };
+    if (w < p.thetaMin + margin || w > p.thetaMax - margin)
+      return { ok: false, reason: 'jointLimit', leg: i };
+    if (lowerArmTilt(p, i, w, pos) > p.ballJointMax - margin)
+      return { ok: false, reason: 'ballJoint', leg: i };
     theta.push(w);
   }
   return { ok: true, theta: theta as unknown as Joints };

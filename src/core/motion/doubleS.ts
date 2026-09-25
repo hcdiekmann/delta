@@ -61,7 +61,8 @@ export function doubleS(distance: number, { vMax, aMax, jMax }: Limits): Profile
 
   const accel = (t: number): ProfileSample => {
     if (t < Tj) return { s: (jMax * t ** 3) / 6, v: (jMax * t * t) / 2, a: jMax * t };
-    if (t < Ta - Tj) return { s: (aLim / 6) * (3 * t * t - 3 * Tj * t + Tj * Tj), v: aLim * (t - Tj / 2), a: aLim };
+    if (t < Ta - Tj)
+      return { s: (aLim / 6) * (3 * t * t - 3 * Tj * t + Tj * Tj), v: aLim * (t - Tj / 2), a: aLim };
     const r = Ta - t;
     return { s: sA - vLim * r + (jMax * r ** 3) / 6, v: vLim - (jMax * r * r) / 2, a: jMax * r };
   };

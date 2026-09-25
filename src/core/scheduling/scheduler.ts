@@ -1,7 +1,13 @@
-import { addScaled, lengthXY, sub, type Vec3 } from '../math/vec3';
+import { addScaled, lengthXY, sub, vec3, type Vec3 } from '../math/vec3';
 import { isReachable } from '../kinematics/kinematics';
 import type { DeltaParams } from '../kinematics/params';
-import { planIntercept, validateSegment, type ArchOptions, type InterceptPlan, type MotionState } from '../motion/trajectory';
+import {
+  planIntercept,
+  validateSegment,
+  type ArchOptions,
+  type InterceptPlan,
+  type MotionState,
+} from '../motion/trajectory';
 
 /** Something the robot can pick or place into, described in the robot frame. */
 export interface Target {
@@ -25,6 +31,8 @@ export const STRATEGIES: { id: Strategy; label: string; hint: string }[] = [
 
 export interface PlanContext {
   params: DeltaParams;
+  /** Tool length: planned positions are tool tips, the flange sits this far above [m] */
+  tool: number;
   arch: ArchOptions;
   /** Joint limit margin used while planning [rad] */
   margin: number;
@@ -34,9 +42,13 @@ export interface PlanContext {
   clear?: (p: Vec3, dt: number) => boolean;
 }
 
+/** Is a tool tip position reachable (the kinematics work on the flange above it)? */
+export const tipReachable = (ctx: PlanContext, p: Vec3) =>
+  isReachable(ctx.params, vec3(p.x, p.y, p.z + ctx.tool), ctx.margin);
+
 /** Reach window of a target moving with constant velocity: [tIn, tOut] from now, or null. */
 export function reachWindow(ctx: PlanContext, t: Target, horizon = 12, step = 0.05): [number, number] | null {
-  const ok = (tau: number) => isReachable(ctx.params, addScaled(t.pos, t.vel, tau), ctx.margin);
+  const ok = (tau: number) => tipReachable(ctx, addScaled(t.pos, t.vel, tau));
   let tIn = -1;
   for (let tau = 0; tau <= horizon; tau += step) {
     if (ok(tau)) {
@@ -69,7 +81,7 @@ export function validatePlan(ctx: PlanContext, plan: InterceptPlan, startOffset:
     validateSegment(
       plan,
       (s: MotionState, t: number) =>
-        isReachable(ctx.params, s.p, ctx.margin) && (ctx.clear ? ctx.clear(s.p, startOffset + t) : true),
+        tipReachable(ctx, s.p) && (ctx.clear ? ctx.clear(s.p, startOffset + t) : true),
       0.02,
     ) === null
   );
@@ -117,7 +129,11 @@ export function planFor(
         ? ctx.arch
         : {
             ...ctx.arch,
-            xy: { vMax: ctx.arch.xy.vMax * speed, aMax: ctx.arch.xy.aMax * speed * speed, jMax: ctx.arch.xy.jMax * speed ** 3 },
+            xy: {
+              vMax: ctx.arch.xy.vMax * speed,
+              aMax: ctx.arch.xy.aMax * speed * speed,
+              jMax: ctx.arch.xy.jMax * speed ** 3,
+            },
           };
     const plan = planIntercept({ p: start.p, v: start.v }, { p: tp, v: target.vel }, arch, {
       minTime,

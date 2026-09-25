@@ -78,6 +78,7 @@ export interface Tray {
 }
 
 const SLOT_ID_BASE = 1_000_000;
+export const TOOL_LENGTH = { suction: 0.1, fingers: 0.12 };
 
 export class PickPlaceScenario implements Scenario, TaskProvider {
   readonly id = 'pickPlace' as const;
@@ -106,6 +107,7 @@ export class PickPlaceScenario implements Scenario, TaskProvider {
     this.robot = new RobotController(
       {
         params: this.params,
+        tool: TOOL_LENGTH.suction,
         arch: {
           travelZ: pickZ + 0.07,
           minLift: 0.04,
@@ -157,7 +159,8 @@ export class PickPlaceScenario implements Scenario, TaskProvider {
 
   private setupTrays() {
     if (this.config.placeMode === 'staticTrays') {
-      for (const p of LAYOUT.staticTrays) this.trays.push(this.newTray(vec3(p.x, p.y, LAYOUT.beltHeight), true));
+      for (const p of LAYOUT.staticTrays)
+        this.trays.push(this.newTray(vec3(p.x, p.y, LAYOUT.beltHeight), true));
       return;
     }
     const { xStart, xEnd, y } = LAYOUT.trayBelt;
@@ -408,11 +411,19 @@ export class PickPlaceScenario implements Scenario, TaskProvider {
       { label: 'Picks / min', value: this.placed / minutes, digits: 1 },
       { label: 'Placed', value: this.placed },
       { label: 'Missed', value: this.missed, tone: this.missed > 0 ? 'bad' : 'neutral' },
-      { label: 'Pick rate', value: total ? (100 * this.placed) / total : 100, unit: '%', digits: 1, tone: 'good' },
+      {
+        label: 'Pick rate',
+        value: total ? (100 * this.placed) / total : 100,
+        unit: '%',
+        digits: 1,
+        tone: 'good',
+      },
       { label: 'Avg cycle', value: avgCycle, unit: 's', digits: 2 },
       { label: 'Utilisation', value: (100 * s.busyTime) / Math.max(s.totalTime, 1e-9), unit: '%', digits: 0 },
       { label: 'Trays filled', value: this.traysDone },
-      ...(this.traysIncomplete ? [{ label: 'Trays incomplete', value: this.traysIncomplete, tone: 'bad' as const }] : []),
+      ...(this.traysIncomplete
+        ? [{ label: 'Trays incomplete', value: this.traysIncomplete, tone: 'bad' as const }]
+        : []),
     ];
   }
 

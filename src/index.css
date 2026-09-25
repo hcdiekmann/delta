@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-bg: #0b1015;
+  --color-panel: rgb(17 24 31 / 0.78);
+  --color-line: rgb(255 255 255 / 0.08);
+  --color-accent: #34d399;
+  --color-accent-2: #38bdf8;
+  --color-warn: #fbbf24;
+  --color-bad: #fb7185;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--color-bg);
+  color: #e5e7eb;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.glass {
+  background: var(--color-panel);
+  backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* uPlot tweaks for the dark theme */
+.uplot,
+.uplot * {
+  font-family: var(--font-mono) !important;
+}
+.u-legend {
+  font-size: 11px;
+}
+.u-legend .u-marker {
+  border-radius: 2px;
+}

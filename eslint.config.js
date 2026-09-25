@@ -25,7 +25,18 @@ export default tseslint.config(
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: ['three', 'three/*', 'react', 'react-dom', '@react-three/*', '@/render/*', '@/ui/*', '@/state/*'] },
+        {
+          patterns: [
+            'three',
+            'three/*',
+            'react',
+            'react-dom',
+            '@react-three/*',
+            '@/render/*',
+            '@/ui/*',
+            '@/state/*',
+          ],
+        },
       ],
     },
   },

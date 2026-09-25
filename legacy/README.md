@@ -1,8 +1,12 @@
-# Delta robot simulation
+# Delta robot simulation (legacy version)
+
+> This is the original version of the project, kept for reference. The new simulator lives in the
+> repository root, see the [main README](../README.md). You can start this version from the root with
+> `npm run legacy` after installing its dependencies (`npm --prefix legacy install`).
 
 This is a browser-based 3D simulation of a delta robot that can move its end effector to a target position in 3D space. It runs as a small Node.js/Express server that hosts the frontend (built with p5.js/WebGL). The server can also connect to a Beckhoff PLC over ADS to mirror a real robot.
 
-![Demo](/docs/pictures/main.png)
+![Demo](../docs/pictures/main.png)
 
 #### Features
 
@@ -23,7 +27,7 @@ This is a browser-based 3D simulation of a delta robot that can move its end eff
 
 ```bash
 git clone <repo-url> delta
-cd delta
+cd delta/legacy
 npm install
 npm start
 ```
@@ -93,7 +97,6 @@ Server events and ADS errors are logged to `serverLog.db` (NeDB, one JSON docume
 ```
 server.js                 Express server + ADS bridge
 config files/             Installation / product settings (XML)
-docs/                     Design document and screenshots
 localhost/                Static frontend
   index.HTML              Entry page
   Libraries/              Vendored JS libraries (p5.js, glm-js, math.js, PapaParse, ...)
@@ -104,4 +107,4 @@ localhost/                Static frontend
   js/display.js           Render loop and camera
 ```
 
-The design document with the kinematics derivation is in [`docs/DesignDocument.pdf`](docs/DesignDocument.pdf).
+The design document with the kinematics derivation is in [`docs/DesignDocument.pdf`](../docs/DesignDocument.pdf).

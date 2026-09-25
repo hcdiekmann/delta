@@ -2,7 +2,13 @@ import { add, addScaled, lengthXY, scale, sub, vec3, ZERO, type Vec3 } from '../
 import { inverseKinematics, jointVelocities, type Joints } from '../kinematics/kinematics';
 import { motorTorques } from '../kinematics/dynamics';
 import type { DeltaParams } from '../kinematics/params';
-import { planIntercept, smoother, type ArchOptions, type MotionState, type Segment } from '../motion/trajectory';
+import {
+  planIntercept,
+  smoother,
+  type ArchOptions,
+  type MotionState,
+  type Segment,
+} from '../motion/trajectory';
 import {
   nearestYaw,
   orderCandidates,
@@ -35,6 +41,8 @@ export interface TaskProvider {
 
 export interface ControllerConfig {
   params: DeltaParams;
+  /** Tool length (flange to tool tip) [m]; all positions handled here are tool tips */
+  tool: number;
   arch: ArchOptions;
   strategy: Strategy;
   graspTime: number;
@@ -98,13 +106,19 @@ export class RobotController {
     private tasks: TaskProvider,
   ) {
     this.state = { p: config.home, v: ZERO, a: ZERO, yaw: 0 };
-    const ik = inverseKinematics(config.params, config.home);
+    const ik = inverseKinematics(config.params, this.flange);
     if (ik.ok) this.theta = ik.theta;
+  }
+
+  /** Flange (effector plate) position for the current tool tip position */
+  get flange(): Vec3 {
+    return vec3(this.state.p.x, this.state.p.y, this.state.p.z + this.config.tool);
   }
 
   private get ctx(): PlanContext {
     return {
       params: this.config.params,
+      tool: this.config.tool,
       arch: this.config.arch,
       margin: this.config.margin,
       graspTime: this.config.graspTime,
@@ -181,6 +195,19 @@ export class RobotController {
     return null;
   }
 
+  /** Start moving the carried item to a place target; returns false if none is reachable. */
+  private tryPlace(t: number): boolean {
+    const item = this.carrying;
+    if (!item) return false;
+    const start = { p: this.state.p, v: this.state.v, yaw: this.state.yaw };
+    const place = this.findPlace(item, start, 0, this.carryYawOffset);
+    if (!place) return false;
+    this.placeTarget = place.place;
+    this.startMove(place.segment, t, place.place);
+    this.setPhase('transfer', t);
+    return true;
+  }
+
   private goHome(t: number) {
     const plan = planIntercept(
       { p: this.state.p, v: this.state.v },
@@ -217,7 +244,8 @@ export class RobotController {
     // Look for work when idle or heading home (re-plan at most every 50 ms)
     if ((this.phase === 'idle' || this.phase === 'return') && t - this.lastSchedule >= 0.05) {
       this.lastSchedule = t;
-      this.trySchedule(t);
+      if (this.carrying) this.tryPlace(t);
+      else this.trySchedule(t);
     }
 
     switch (this.phase) {
@@ -247,12 +275,9 @@ export class RobotController {
         if (t - this.phaseStart >= cfg.graspTime) {
           this.tasks.onGrasp(target);
           this.carrying = target;
-          const start = { p: this.state.p, v: this.state.v, yaw: this.state.yaw };
-          const place = this.findPlace(target, start, 0, this.carryYawOffset);
-          if (!place) return this.abort(t);
-          this.placeTarget = place.place;
-          this.startMove(place.segment, t, place.place);
-          this.setPhase('transfer', t);
+          this.pickTarget = null;
+          // normally a place was verified when the pick was scheduled; if it is gone, hold the item
+          if (!this.tryPlace(t)) this.goHome(t);
         }
         break;
       }
@@ -292,7 +317,11 @@ export class RobotController {
     if (m.targetId !== undefined && m.predicted) {
       const target = this.tasks.find(m.targetId);
       if (!target) {
-        this.abort(t);
+        if (this.phase === 'transfer') {
+          // place target disappeared (e.g. tray left): keep holding the item and retry from home
+          this.placeTarget = null;
+          this.goHome(t);
+        } else this.abort(t);
         return false;
       }
       const predicted = addScaled(m.predicted.p, m.predicted.v, t - m.start);
@@ -316,14 +345,15 @@ export class RobotController {
 
   private updateJoints(t: number, dt: number) {
     const p = this.config.params;
-    const ik = inverseKinematics(p, this.state.p, -1);
+    const flange = this.flange;
+    const ik = inverseKinematics(p, flange, -1);
     if (!ik.ok) return;
     this.theta = ik.theta;
-    this.omega = jointVelocities(p, ik.theta, this.state.p, this.state.v);
+    this.omega = jointVelocities(p, ik.theta, flange, this.state.v);
     const alpha = this.omega.map((w, i) => (w - this.lastOmega[i]!) / dt) as unknown as Joints;
     this.lastOmega = this.omega;
     const payload = this.carrying ? (this.tasks.payloadMass?.(this.carrying) ?? 0) : 0;
-    this.torque = motorTorques(p, ik.theta, alpha, this.state.p, this.state.a, payload);
+    this.torque = motorTorques(p, ik.theta, alpha, flange, this.state.a, payload);
     if (t - this.lastTelemetry >= 0.01) {
       this.lastTelemetry = t;
       const [a, b, c] = this.theta;

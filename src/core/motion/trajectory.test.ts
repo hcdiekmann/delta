@@ -76,9 +76,14 @@ describe('planIntercept', () => {
   });
 
   it('returns null when the target cannot be caught in time', () => {
-    const plan = planIntercept({ p: vec3(0, 0, -0.9), v: vec3() }, { p: vec3(-1, 0, -0.9), v: vec3(-5, 0, 0) }, arch, {
-      maxTime: 1,
-    });
+    const plan = planIntercept(
+      { p: vec3(0, 0, -0.9), v: vec3() },
+      { p: vec3(-1, 0, -0.9), v: vec3(-5, 0, 0) },
+      arch,
+      {
+        maxTime: 1,
+      },
+    );
     expect(plan).toBeNull();
   });
 });

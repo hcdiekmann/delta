@@ -12,7 +12,8 @@ export const add = (a: Vec3, b: Vec3): Vec3 => vec3(a.x + b.x, a.y + b.y, a.z + 
 export const sub = (a: Vec3, b: Vec3): Vec3 => vec3(a.x - b.x, a.y - b.y, a.z - b.z);
 export const scale = (a: Vec3, s: number): Vec3 => vec3(a.x * s, a.y * s, a.z * s);
 /** a + b * s */
-export const addScaled = (a: Vec3, b: Vec3, s: number): Vec3 => vec3(a.x + b.x * s, a.y + b.y * s, a.z + b.z * s);
+export const addScaled = (a: Vec3, b: Vec3, s: number): Vec3 =>
+  vec3(a.x + b.x * s, a.y + b.y * s, a.z + b.z * s);
 export const dot = (a: Vec3, b: Vec3): number => a.x * b.x + a.y * b.y + a.z * b.z;
 export const cross = (a: Vec3, b: Vec3): Vec3 =>
   vec3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);

@@ -4,7 +4,15 @@ import { PRESETS, type DeltaParams } from '../../kinematics/params';
 import { RobotController, type TaskProvider } from '../../robot/controller';
 import type { Strategy, Target } from '../../scheduling/scheduler';
 import type { Metric, Scenario } from '../scenario';
-import { CHUNK_LENGTH, FIELD_PRESETS, generateChunk, type FieldPreset, type FieldPresetId, type Plant } from './field';
+import { TOOL_LENGTH } from '../pickPlace/pickPlace';
+import {
+  CHUNK_LENGTH,
+  FIELD_PRESETS,
+  generateChunk,
+  type FieldPreset,
+  type FieldPresetId,
+  type Plant,
+} from './field';
 
 export type ClearancePolicy = 'skip' | 'attempt';
 export type Disposal = 'bin' | 'furrow';
@@ -100,6 +108,7 @@ export class WeedingScenario implements Scenario, TaskProvider {
     this.robot = new RobotController(
       {
         params: this.params,
+        tool: TOOL_LENGTH.fingers,
         arch: {
           travelZ,
           minLift: 0.04,
@@ -141,7 +150,13 @@ export class WeedingScenario implements Scenario, TaskProvider {
     const last = Math.floor((this.vehicleX + 8) / CHUNK_LENGTH);
     for (let i = first; i <= last; i++) {
       if (this.chunks.has(i)) continue;
-      const plants = generateChunk(this.preset, this.config.seed, i, this.config.weedDensity, () => this.nextPlantId++);
+      const plants = generateChunk(
+        this.preset,
+        this.config.seed,
+        i,
+        this.config.weedDensity,
+        () => this.nextPlantId++,
+      );
       for (const p of plants) this.plants.set(p.id, p);
       this.chunks.set(
         i,
@@ -202,7 +217,11 @@ export class WeedingScenario implements Scenario, TaskProvider {
       if (this.detections.has(p.id) || p.pos.x < x0 || p.pos.x > x1 || !this.inLane(p)) continue;
       const confidence = p.kind === 'weed' ? this.rng.beta(9, 1.6) : this.rng.beta(1.2, 14);
       const label = confidence >= this.config.threshold ? 'weed' : 'crop';
-      const pos = vec3(p.pos.x + this.rng.normal(0, VISION.noise), p.pos.y + this.rng.normal(0, VISION.noise), p.pos.z);
+      const pos = vec3(
+        p.pos.x + this.rng.normal(0, VISION.noise),
+        p.pos.y + this.rng.normal(0, VISION.noise),
+        p.pos.z,
+      );
       const tooClose =
         label === 'weed' &&
         this.nearestCropDistance(pos) < GRIPPER_RADIUS + this.config.clearance &&
@@ -276,7 +295,8 @@ export class WeedingScenario implements Scenario, TaskProvider {
 
   /** Drop point above the bin, which hangs next to the robot over the furrow (robot frame). */
   binPosition(): Vec3 {
-    return this.preset.robot === 'weeder' ? vec3(-0.05, 0.4, -0.5) : vec3(-0.2, 0.6, -0.78);
+    const ground = -this.preset.baseHeight;
+    return this.preset.robot === 'weeder' ? vec3(-0.05, 0.4, ground + 0.12) : vec3(-0.2, 0.6, ground + 0.17);
   }
 
   placeCandidates(): Target[] {
@@ -348,7 +368,8 @@ export class WeedingScenario implements Scenario, TaskProvider {
       if (d.label !== 'crop') continue;
       const p = this.plants.get(d.plantId);
       if (!p || p.kind !== 'crop' || Math.abs(d.pos.x - wx) > 0.2) continue;
-      const keepOut = this.config.clearancePolicy === 'skip' ? p.radius + GRIPPER_RADIUS : 0.015 + GRIPPER_RADIUS;
+      const keepOut =
+        this.config.clearancePolicy === 'skip' ? p.radius + GRIPPER_RADIUS : 0.015 + GRIPPER_RADIUS;
       if (wz < d.pos.z + p.height + 0.02 && Math.hypot(d.pos.x - wx, d.pos.y - wy) < keepOut) return false;
     }
     return true;
@@ -372,7 +393,11 @@ export class WeedingScenario implements Scenario, TaskProvider {
       { label: 'Crop hits', value: c.cropHits, tone: c.cropHits ? 'bad' : 'good' },
       { label: 'Crops pulled', value: c.cropsPulled, tone: c.cropsPulled ? 'bad' : 'good' },
       { label: 'Skipped (near crop)', value: c.skipped },
-      { label: 'Detections TP / FP / FN', value: c.truePositive, unit: ` / ${c.falsePositive} / ${c.falseNegative}` },
+      {
+        label: 'Detections TP / FP / FN',
+        value: c.truePositive,
+        unit: ` / ${c.falsePositive} / ${c.falseNegative}`,
+      },
       { label: 'Distance', value: this.distance, unit: 'm', digits: 1 },
       {
         label: 'Utilisation',

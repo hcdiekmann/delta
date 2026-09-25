@@ -174,7 +174,11 @@ export function coast(from: MotionState, duration: number): Segment {
 }
 
 /** Check a segment by sampling it; returns the first failing time or null if it is valid. */
-export function validateSegment(seg: Segment, ok: (s: MotionState, t: number) => boolean, dt = 0.01): number | null {
+export function validateSegment(
+  seg: Segment,
+  ok: (s: MotionState, t: number) => boolean,
+  dt = 0.01,
+): number | null {
   for (let t = 0; t < seg.duration; t += dt) if (!ok(seg.sample(t), t)) return t;
   return ok(seg.sample(seg.duration), seg.duration) ? null : seg.duration;
 }
