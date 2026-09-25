@@ -1,165 +1,105 @@
 /*-------------- Imports --------------*/
-const ads = require('ads-client');      
-const { response } = require('express');
-const express = require('express');     
-const fs = require('fs');               
-const xmlparser = require('express-xml-bodyparser');
-const Datastore = require('nedb');     
-const socket = require('socket.io');   
+const { Client } = require('ads-client');
+const express = require('express');
+const path = require('path');
+const Datastore = require('@seald-io/nedb');
 
-/* webserver hosting index.html at port 3000 locally */
-const PORT = 8000;
+/* webserver hosting the simulation (localhost/index.html) */
+const PORT = process.env.PORT || 3000;
 const app = express();
-const server = app.listen(PORT, function() {
-    console.log(`Starting server at http://localhost:${PORT}/`);
-    console.log(`Listening on port ${PORT}`) });
-app.use(express.static('localhost'));   // folder to for static files
-app.use(express.json({ limit: '1mb'})); // json parser for fetch requests limit could be increased
-
-/* websocket setup */
-const io = socket(server);
+app.use(express.static(path.join(__dirname, 'localhost'), { index: 'index.HTML' }));
+app.use(express.json({ limit: '1mb' })); // json parser for fetch requests limit could be increased
 
 /* database file for logging server status and ads errors */
-const logger = new Datastore('serverLog.db');
-logger.loadDatabase();
+const logger = new Datastore({ filename: path.join(__dirname, 'serverLog.db'), autoload: true });
+const log = (entry) => logger.insert({ time: new Date(), entry: entry instanceof Error ? entry.message : entry });
+
+/* ads client, created on /connect */
+let client = null;
+const isConnected = () => client !== null && client.connection.connected;
 
 /*----------------------------------------------------------------------------------------------------*/
 
-
 // handle frontend connect post request
-app.post('/connect', (request, response) => {
-    global.client = new ads.Client({            // global client variable, not sure if this is smart?
-        targetAmsNetId: request.body.AmsNetID,  
-        targetAdsPort: request.body.AdsPort
+app.post('/connect', async (request, response) => {
+    client = new Client({
+        targetAmsNetId: request.body.AmsNetID,
+        targetAdsPort: Number(request.body.AdsPort)
     });
-    client.connect()
-        .then(res => {
-            let info = `Connected to ${res.targetAmsNetId} , local assigned router has AmsNetId ${res.localAmsNetId} at port ${res.localAdsPort}`;
-            console.log(info);
-            logger.insert(info);
-            //Subscribe();
-            response.sendStatus(200, "Connected successfully");
-        })
-        .catch(err => {
-            console.log('Error:', err);
-            logger.insert(err);
-            response.sendStatus(500, "Could not connect to PLC, check AmsNetID and port");
-        })
-});
-
-//send configuration file 
-app.get('/config', (req, res) => {
-    res.contentType('application/xml');
-    res.sendFile(__dirname + '/config files/installationsettings.xml')
-});
-
-/* io.sockets.on("connection", function (socket) {
-    console.log("Made socket connection");
-    socket.on()
-}); */
-
-/* Subscribe to PLC variables (called once after connecting) */
-/* async function Subscribe() {
     try {
-        let PosXSub = await client.subscribe('MAIN.POSX', subCallback, 10, true);
-        let PosYSub = await client.subscribe('MAIN.POSY', subCallback, 10, true);
-        let PosZSub = await client.subscribe('MAIN.POSZ', subCallback, 10, true);
-
-        console.log(`Subscribed to ${PosXSub.target}`);
-        console.log(`Subscribed to ${PosYSub.target}`);
-        console.log(`Subscribed to ${PosZSub.target}`);
-    }
-    catch (err) { 
-        console.log('Error:', err);
-        logger.insert(err);
-    }
-} */
-
-// variable subscriptions callback function
-const subCallback = (data, sub) => {
-    try {
-        let info = `${data.timeStamp}: ${sub.target} changed to ${data.value}`;
+        const res = await client.connect();
+        const info = `Connected to ${res.targetAmsNetId}, local assigned router has AmsNetId ${res.localAmsNetId} at port ${res.localAdsPort}`;
         console.log(info);
-        logger.insert(info);
+        log(info);
+        response.sendStatus(200);
     }
     catch (err) {
-        console.log('Error:', err)
+        console.log('Error:', err.message);
+        log(err);
+        client = null;
+        response.status(500).send('Could not connect to PLC, check AmsNetID and port');
     }
-    finally {
-        //We can call sub.unsubscribe() here to remove the subscriptions if we want
-    }
-}
+});
+
+// send configuration file
+app.get('/config', (request, response) => {
+    response.sendFile(path.join(__dirname, 'config files', 'installationsettings.xml'));
+});
 
 app.get('/connected', (request, response) => {
+    response.sendStatus(isConnected() ? 200 : 500);
+});
+
+app.get('/disconnect', async (request, response) => {
+    if (client === null) return response.sendStatus(200);
     try {
-       (client.connection.connected ? response.sendStatus(200) : response.sendStatus(500) );
+        await client.disconnect();
+        log('Disconnected from PLC');
+        response.sendStatus(200);
     }
-    catch {
-        console.log("Connection status read without client object");
-        response.sendStatus(500, "ads client does not exist, try connecting first");
+    catch (err) {
+        console.log('Error:', err.message);
+        log(err);
+        response.status(500).send(err.message);
     }
-});
-
-app.get('/disconnect', (request, response) => {
-    client.disconnect()
-    .then(res =>{
-        response.sendStatus(200, "Disconnected from PLC successfully");
-        logger.insert(res);
-    })
-    .catch(err =>{
-        console.log('Error:', err);
-        logger.insert(err);
-        response.sendStatus(500, err);
-    })
-});
-
-// handle frontend fetch get requests
-app.get('/state', (request, response) => {
-    if (client.connection.connected) {
-        client.readPlcRuntimeState() //send the ads response as the servers response
-        .then(res =>{
-            response.json(res);
-        })
-        .catch(err =>{
-            logger.insert(err);
-            response.json(err);
-        })
-    }
-    else {
-        response.sendStatus(500, "Client not connected to PLC");
+    finally {
+        client = null;
     }
 });
 
-app.get('/pos0', (request, response) => {
-    client.readSymbol("MAIN.POS0")
-    .then(res =>{
-        response.json(res);
-    })
-    .catch(err =>{
-        console.log('Error:', err);
-        logger.insert(err);
-    })
+// runtime state of the PLC (Run, Config, Stop...)
+app.get('/state', async (request, response) => {
+    if (!isConnected()) return response.status(500).send('Client not connected to PLC');
+    try {
+        response.json(await client.readPlcRuntimeState());
+    }
+    catch (err) {
+        log(err);
+        response.status(500).json({ error: err.message });
+    }
 });
 
-app.get('/pos1', (request, response) => {
-    client.readSymbol("MAIN.POS1")
-    .then(res =>{
-        response.json(res);
-    })
-    .catch(err =>{
-        console.log('Error:', err);
-        logger.insert(err);
-    })
-});
+// motor positions MAIN.POS0 - MAIN.POS2
+for (let i = 0; i < 3; i++) {
+    app.get(`/pos${i}`, async (request, response) => {
+        if (!isConnected()) return response.status(500).send('Client not connected to PLC');
+        try {
+            const res = await client.readValue(`MAIN.POS${i}`);
+            response.json({ value: res.value });
+        }
+        catch (err) {
+            console.log('Error:', err.message);
+            log(err);
+            response.status(500).json({ error: err.message });
+        }
+    });
+}
 
-app.get('/pos2', (request, response) => {
-    client.readSymbol("MAIN.POS2")
-    .then(res =>{
-        response.json(res);
-    })
-    .catch(err =>{
-        console.log('Error:', err);
-        logger.insert(err);
-    })
+app.listen(PORT, (err) => {
+    if (err) {
+        console.error(`Could not start server on port ${PORT}: ${err.message}`);
+        console.error('Choose another port, e.g. PORT=3001 npm start');
+        process.exit(1);
+    }
+    console.log(`Server running at http://localhost:${PORT}/`);
 });
-
