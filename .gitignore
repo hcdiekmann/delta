@@ -130,4 +130,7 @@ dist
 .pnp.*
 
 # Server log database (created at runtime)
-serverLog.db
+**/serverLog.db
+
+# Build output
+dist/

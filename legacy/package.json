@@ -1,0 +1,30 @@
+{
+  "name": "delta-robot-sim",
+  "version": "1.0.0",
+  "description": "Browser-based 3D delta robot simulation with optional Beckhoff PLC connection via ADS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js --ignore serverLog.db --ignore localhost/"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "delta-robot",
+    "simulation",
+    "ads",
+    "plc",
+    "beckhoff"
+  ],
+  "author": "Christian Diekmann",
+  "license": "MIT",
+  "dependencies": {
+    "@seald-io/nedb": "^4.1.2",
+    "ads-client": "^2.2.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
